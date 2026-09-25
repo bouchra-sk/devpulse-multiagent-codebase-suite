@@ -1,0 +1,7 @@
+astapi
+uvicorn[standard]
+python-multipart
+chromadb
+python-dotenv
+requests
+ 

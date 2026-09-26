@@ -28,8 +28,8 @@ from backend.Agent2.state import FOLDER_TREES
 from backend.Agent2.archi_agent import summarize_architecture
 from backend.Agent3.qa_agent import answer_question
 from backend.Agent4.security_quality_agent import security_quality_agent
-from backend.Agent5.refactoring_agent import refactor_code
-from backend.Agent6.test_generator_agent import generate_tests
+from backend.agent5.refactoring_agent import refactor_code
+from backend.agent6.test_generator_agent import generate_tests
 
 app = FastAPI(title="Codebase Indexing Agent")
 

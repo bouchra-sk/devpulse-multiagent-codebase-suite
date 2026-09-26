@@ -271,7 +271,7 @@ if st.session_state.selected_page == "Home":
                 All-in-One <br><span class="gradient-text">Developer Copilot</span>
             </h1>
             <p style="font-size: 1.1rem; color: #94A3B8; margin-top: 20px;">
-                Upload your codebase once to explore its architecture, ask contextual questions, run security audits, and generate PyTest tests.
+                Upload your codebase once to explore its architecture, ask contextual questions, run security audits.
             </p>
         </div>
         """,

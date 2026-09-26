@@ -17,7 +17,7 @@ avec une réponse simulée (risque réel le jour de la démo).
 """
 
 import requests
-from config import LLM_API_KEY, LLM_API_URL, FORCE_MOCK_LLM
+from backend.config import LLM_API_KEY, LLM_API_URL, FORCE_MOCK_LLM
 
 
 def _is_mock_mode() -> bool:

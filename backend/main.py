@@ -1,10 +1,17 @@
 """
-Point d'entrée FastAPI — Agent 1 : Indexing & Parsing Agent
+Point d'entrée FastAPI — Type 1 (Codebase Onboarding) + Type 2 (PR Reviewer)
 
-Endpoints :
-- POST /index          : upload d'un zip de projet -> extraction + chunking + indexation RAG
-- GET  /health          : vérifie que le serveur tourne
-- GET  /tree/{project}  : retourne l'arborescence du dernier projet indexé
+Endpoints Type 1 :
+- POST /index                : upload d'un zip -> extraction + chunking + indexation RAG (Agent 1)
+- GET  /health                : vérifie que le serveur tourne
+- GET  /tree/{project}        : retourne l'arborescence du dernier projet indexé
+- POST /architecture/{id}     : résumé architectural (Agent 2)
+- POST /ask/{id}              : Q&A sur le codebase (Agent 3)
+
+Endpoints Type 2 :
+- POST /api/v1/review          : audit sécurité/qualité (Agent 4)
+- POST /api/v1/refactor        : refactoring du code (Agent 5)
+- POST /api/v1/generate-tests  : génération de tests PyTest (Agent 6)
 """
 
 import os
@@ -19,6 +26,7 @@ from backend.Agent1.parsing import extract_zip, build_folder_tree, build_chunks
 from backend.Agent1.rag import index_chunks
 from backend.Agent2.state import FOLDER_TREES
 from backend.Agent2.archi_agent import summarize_architecture
+from backend.Agent3.qa_agent import answer_question
 from backend.Agent4.security_quality_agent import security_quality_agent
 from backend.Agent5.refactoring_agent import refactor_code
 from backend.Agent6.test_generator_agent import generate_tests
@@ -117,7 +125,6 @@ def get_architecture_summary(project_id: str):
     try:
         result = summarize_architecture(project_id, tree)
     except RuntimeError as e:
-        # Cas où LLM_API_KEY n'est pas configurée dans .env
         raise HTTPException(status_code=500, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=502, detail=f"Erreur lors de l'appel au LLM : {e}")
@@ -125,7 +132,43 @@ def get_architecture_summary(project_id: str):
     return {
         "project_id": project_id,
         "architecture_summary": result["content"],
-        "mocked": result["mocked"],  # True tant que LLM_API_URL n'est pas configuré
+        "mocked": result["mocked"],
+    }
+
+
+class AskRequest(BaseModel):
+    question: str
+
+
+@app.post("/ask/{project_id}")
+def ask_question(project_id: str, payload: AskRequest):
+    """
+    Agent 3 : Codebase Q&A Copilot Agent.
+    Doit être appelé APRÈS /index — utilise le RAG construit par l'Agent 1
+    pour répondre à une question sur le codebase indexé.
+    """
+    tree = FOLDER_TREES.get(project_id)
+    if tree is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Projet inconnu — indexe-le d'abord via POST /index.",
+        )
+
+    if not payload.question.strip():
+        raise HTTPException(status_code=400, detail="La question ne peut pas être vide.")
+
+    try:
+        result = answer_question(project_id, payload.question)
+    except RuntimeError as e:
+        # Cas où LLM_API_KEY n'est pas configurée dans .env
+        raise HTTPException(status_code=500, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"Erreur lors de l'appel au LLM : {e}")
+
+    return {
+        "project_id": project_id,
+        "answer": result["answer"],
+        "mocked": result["mocked"],
     }
 
 
@@ -150,7 +193,7 @@ class GenerateTestsRequest(BaseModel):
 @app.post("/api/v1/review")
 def review_code(payload: ReviewRequest):
     """
-    Agent 1 (Type 2) : Security & Quality Agent.
+    Agent 4 : Security & Quality Agent.
     Pas de LLM ici — analyse par règles (regex + AST), donc pas de risque
     de 502 même sans LLM_API_URL configuré.
     """
@@ -164,7 +207,7 @@ def review_code(payload: ReviewRequest):
 @app.post("/api/v1/refactor")
 def refactor_code_endpoint(payload: RefactorRequest):
     """
-    Agent 2 (Type 2) : IBM Bob Refactoring Agent.
+    Agent 5 : IBM Bob Refactoring Agent.
     À appeler avec le code original + les "findings" retournés par /api/v1/review.
     """
     try:
@@ -177,7 +220,7 @@ def refactor_code_endpoint(payload: RefactorRequest):
 @app.post("/api/v1/generate-tests")
 def generate_tests_endpoint(payload: GenerateTestsRequest):
     """
-    Agent 3 (Type 2) : Automated Test Generator Agent.
+    Agent 6 : Automated Test Generator Agent.
     À appeler avec le code refactorisé retourné par /api/v1/refactor.
     """
     try:

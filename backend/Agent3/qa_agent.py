@@ -33,10 +33,10 @@ def answer_question(
     project_id: str,
     question: str,
     n_results: int = 5
-) -> str:
+) -> dict:
     """
-    Répond à une question du développeur
-    en utilisant le RAG de l'Agent 1.
+    Répond à une question du développeur en utilisant le RAG de l'Agent 1.
+    Retourne {"answer": str, "mocked": bool}.
     """
 
     # 1. Recherche dans ChromaDB
@@ -46,25 +46,22 @@ def answer_question(
         n_results=n_results
     )
 
-    # 2. Aucun résultat trouvé
+    # 2. Aucun résultat trouvé — pas besoin d'appeler le LLM
     if not matches:
-        return (
-            "Je n'ai trouvé aucun extrait pertinent "
-            "dans le code indexé pour répondre à cette question."
-        )
+        return {
+            "answer": (
+                "Je n'ai trouvé aucun extrait pertinent "
+                "dans le code indexé pour répondre à cette question."
+            ),
+            "mocked": False,
+        }
 
     # 3. Préparer les extraits trouvés
     context_blocks = []
 
     for match in matches:
-
         metadata = match.get("metadata", {})
-
-        file_path = metadata.get(
-            "file_path",
-            "Fichier inconnu"
-        )
-
+        file_path = metadata.get("file_path", "Fichier inconnu")
         text = match.get("text", "")
 
         context_blocks.append(
@@ -95,10 +92,8 @@ Indique les fichiers concernés lorsque c'est pertinent.
 """
 
     # 6. Envoyer le contexte + la question à IBM Bob 2.0
-    answer = call_llm(
-        SYSTEM_PROMPT,
-        user_prompt
-    )
+    #    call_llm() retourne {"content": str, "mocked": bool}
+    result = call_llm(SYSTEM_PROMPT, user_prompt)
 
-    # 7. Retourner la réponse
-    return str(answer)
+    # 7. Retourner la réponse dans le même format que les autres agents
+    return {"answer": result["content"], "mocked": result["mocked"]}

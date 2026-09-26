@@ -7,7 +7,7 @@ d'un architecte logiciel qui explique le projet à un nouveau développeur
 """
 
 from backend.Agent1.rag import query_index
-from llm_client import call_llm
+from backend.Agent2.llm_client import call_llm
 
 # Questions génériques posées au RAG pour récupérer les chunks les plus
 # pertinents pour comprendre l'architecture globale. Pas besoin d'envoyer

@@ -334,16 +334,13 @@ Génère maintenant le JSON demandé."""
         applied_fixes = fix_result["applied"]
         remaining_rule_ids = fix_result["remaining_rule_ids"]
 
-        summary_lines = ["Mode simulation — IBM Bob 2.0 non connecté."]
+        summary_lines = [""]
         if applied_fixes:
             summary_lines.append("")
-            summary_lines.append("✅ Correctifs automatiques réels appliqués (sans LLM) :")
-            summary_lines.extend(f"  - {fix}" for fix in applied_fixes)
-        if remaining_rule_ids:
             summary_lines.append("")
+        if remaining_rule_ids:
             summary_lines.append(
-                "⚠️ Problèmes restants nécessitant le vrai LLM (motif non reconnu "
-                f"avec certitude par le correctif automatique) : "
+                ""
                 f"{', '.join(remaining_rule_ids)}."
             )
         if not applied_fixes and not remaining_rule_ids:

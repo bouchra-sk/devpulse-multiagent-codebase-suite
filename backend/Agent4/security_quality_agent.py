@@ -3,6 +3,7 @@ from __future__ import annotations
 import ast
 import re
 from dataclasses import dataclass
+from typing import Any
 
 
 @dataclass(frozen=True)
@@ -21,7 +22,11 @@ RULES = (
         "Possible SQL injection",
         "high",
         "security",
-        re.compile(r"(?:execute|executemany)\s*\([^\n]*(?:f['\"]|%\s*\(|\.format\(|\+\s*)"),
+        re.compile(
+            r"(?:execute|executemany)\s*\([^\n]*(?:f['\"]|%\s*\(|\.format\(|\+\s*)"
+            r"|['\"](?:SELECT|INSERT|UPDATE|DELETE)\b[^'\"]*['\"]\s*\+\s*\w+",
+            re.IGNORECASE,
+        ),
         "Use parameterized queries instead of concatenating or interpolating user input.",
     ),
     Rule(
@@ -62,11 +67,11 @@ RULES = (
 class SecurityQualityAgent:
     """Run a dependency-free first-pass security and quality review."""
 
-    def review(self, code: str, language: str = "python") -> dict[str, object]:
+    def review(self, code: str, language: str = "python") -> dict[str, Any]:
         if not code.strip():
             raise ValueError("Code cannot be empty")
 
-        findings: list[dict[str, object]] = []
+        findings: list[dict[str, Any]] = []
         lines = code.splitlines()
         for rule in RULES:
             if rule.pattern is None:
@@ -94,7 +99,7 @@ class SecurityQualityAgent:
         }
 
     @staticmethod
-    def _finding(rule: Rule, line: int, code: str) -> dict[str, object]:
+    def _finding(rule: Rule, line: int, code: str) -> dict[str, Any]:
         return {
             "rule_id": rule.rule_id,
             "title": rule.title,
@@ -106,7 +111,7 @@ class SecurityQualityAgent:
         }
 
     @staticmethod
-    def _review_python_ast(code: str, lines: list[str]) -> list[dict[str, object]]:
+    def _review_python_ast(code: str, lines: list[str]) -> list[dict[str, Any]]:
         try:
             tree = ast.parse(code)
         except SyntaxError as error:

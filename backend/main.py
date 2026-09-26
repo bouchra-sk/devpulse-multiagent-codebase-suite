@@ -16,6 +16,7 @@ Endpoints Type 2 :
 
 import os
 import shutil
+from typing import Any
 import uuid
 
 from fastapi import FastAPI, UploadFile, File, HTTPException
@@ -29,7 +30,6 @@ from backend.Agent2.archi_agent import summarize_architecture
 from backend.Agent3.qa_agent import answer_question
 from backend.Agent4.security_quality_agent import security_quality_agent
 from backend.Agent5.refactoring_agent import refactor_code
-from backend.Agent6.test_generator_agent import generate_tests
 
 app = FastAPI(title="Codebase Indexing Agent")
 
@@ -158,7 +158,11 @@ def ask_question(project_id: str, payload: AskRequest):
         raise HTTPException(status_code=400, detail="La question ne peut pas être vide.")
 
     try:
-        result = answer_question(project_id, payload.question)
+     result = answer_question(
+      project_id,
+        payload.question,
+      folder_tree=tree
+     )    
     except RuntimeError as e:
         # Cas où LLM_API_KEY n'est pas configurée dans .env
         raise HTTPException(status_code=500, detail=str(e))
@@ -169,6 +173,7 @@ def ask_question(project_id: str, payload: AskRequest):
         "project_id": project_id,
         "answer": result["answer"],
         "mocked": result["mocked"],
+        "sources": result.get("sources", []),
     }
 
 
@@ -220,11 +225,21 @@ def refactor_code_endpoint(payload: RefactorRequest):
 @app.post("/api/v1/generate-tests")
 def generate_tests_endpoint(payload: GenerateTestsRequest):
     """
-    Agent 6 : Automated Test Generator Agent.
+    Agent 6 : Automated Test Generator & Validator Agent.
     À appeler avec le code refactorisé retourné par /api/v1/refactor.
+
+    Retourne :
+      - filename        : nom suggéré pour le fichier de tests (str)
+      - test_code       : code Python complet du fichier de tests (str)
+      - test_count      : nombre de fonctions test_* (int)
+      - explanation     : stratégie de tests ou message de simulation (str)
+      - generation_mode : "llm" | "simulation" | "error" (str)
+      - mocked          : True si mode simulation (bool)
+      - syntax_ok       : syntaxe du code refactorisé valide (bool)
+      - syntax_errors   : liste des erreurs de syntaxe (list)
+      - pytest_result   : résultat complet de pytest (passed, stdout, summary…)
+
+    En cas d'erreur de configuration LLM (clé manquante, URL invalide,
+    réponse HTTP 4xx/5xx), retourne HTTP 502 avec un message explicite.
     """
-    try:
-        result = generate_tests(payload.code)
-    except RuntimeError as e:
-        raise HTTPException(status_code=502, detail=str(e))
-    return result
+   

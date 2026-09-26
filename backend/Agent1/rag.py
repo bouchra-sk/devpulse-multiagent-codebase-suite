@@ -41,16 +41,26 @@ def index_chunks(project_id: str, chunks: list[dict]) -> int:
 
 def query_index(project_id: str, question: str, n_results: int = 5) -> list[dict]:
     """
-    Sera utilisé plus tard par l'Agent 3 (Q&A Copilot) : recherche les chunks
-    les plus pertinents par rapport à une question posée par le développeur.
+    Utilisé par l'Agent 3 (Q&A Copilot) : recherche les chunks les plus
+    pertinents par rapport à une question posée par le développeur.
     """
     collection = get_or_create_collection(project_id)
     results = collection.query(query_texts=[question], n_results=n_results)
 
+    documents = results["documents"]
+    metadatas = results["metadatas"]
+    distances = results["distances"]
+
+    # ChromaDB type ces champs comme optionnels (Optional[list]), même s'ils
+    # sont toujours renvoyés en pratique après un query() réussi. Cette
+    # vérification confirme explicitement au type checker qu'ils ne sont
+    # pas None (narrowing) ET protège le code si jamais ChromaDB renvoie
+    # une collection vide ou inattendue.
+    if documents is None or metadatas is None or distances is None:
+        return []
+
     matches = []
-    for doc, meta, dist in zip(
-        results["documents"][0], results["metadatas"][0], results["distances"][0]
-    ):
+    for doc, meta, dist in zip(documents[0], metadatas[0], distances[0]):
         matches.append({"text": doc, "metadata": meta, "distance": dist})
 
     return matches

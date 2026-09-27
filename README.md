@@ -182,20 +182,16 @@ project/
 │   │   └── ...
 │   │
 │   ├── Agent5/
-│   │   └── refactoring_agent.py
-│   │
-│   └── llm_client.py
 │
 ├── frontend/
 │   └── app.py
 │
 ├── requirements.txt
-├── .env.example
 ├── .gitignore
 └── README.md
 ```
 
-*Note: Adapt the directory structure to match the actual names and files in the repository.*
+
 
 ---
 
